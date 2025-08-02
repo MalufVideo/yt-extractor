@@ -1,0 +1,9 @@
+# Force Coolify to use Dockerfile instead of Nixpacks
+[variables]
+NIXPACKS_NO_DEFAULT_CACHE_MOUNT = "1"
+
+[phases.build]
+cmds = ["echo 'Use Dockerfile instead'"]
+
+[start]
+cmd = "echo 'This should not run - use Dockerfile'"
