@@ -11,6 +11,8 @@ import json
 import subprocess
 import tempfile
 import os
+import logging
+import traceback
 from datetime import datetime
 from typing import Optional, Dict, Any
 
@@ -18,6 +20,10 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 app = FastAPI(
@@ -237,6 +243,8 @@ def extract_transcript_internal(video_id: str) -> Dict[str, Any]:
         except Exception as e:
             error_msg = f"{method_name}: {str(e)}"
             errors.append(error_msg)
+            logger.error(f"Error in {method_name}: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
     
     return {
         "success": False,
@@ -289,6 +297,8 @@ async def extract_transcript(request: TranscriptRequest):
             "error": str(e)
         })
     except Exception as e:
+        logger.error(f"Unexpected error in extract_transcript: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail={
             "message": "Internal server error",
             "error": str(e),
@@ -305,8 +315,14 @@ async def extract_transcript_get(
     
     - **video_id**: YouTube video ID or full URL
     """
-    request = TranscriptRequest(video_id=video_id)
-    return await extract_transcript(request)
+    try:
+        logger.info(f"GET request for video_id: {video_id}")
+        request = TranscriptRequest(video_id=video_id)
+        return await extract_transcript(request)
+    except Exception as e:
+        logger.error(f"Error in extract_transcript_get: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise
 
 
 if __name__ == "__main__":
