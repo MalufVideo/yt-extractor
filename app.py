@@ -144,6 +144,7 @@ def get_transcript_yt_dlp(video_id: str) -> tuple[str, str]:
                 "--skip-download",
                 "--no-warnings",
                 "--no-check-certificates",
+                "--ignore-errors",
                 "--extractor-args", "youtube:skip=dash,hls",
                 "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 "--add-header", "Accept-Language:en-US,en;q=0.9,*;q=0.8",
@@ -171,7 +172,13 @@ def get_transcript_yt_dlp(video_id: str) -> tuple[str, str]:
             else:
                 logger.warning("No cookies available - may encounter bot detection")
             
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            # Set environment variables to fix SSL issues
+            env = os.environ.copy()
+            env['PYTHONHTTPSVERIFY'] = '0'
+            env['CURL_CA_BUNDLE'] = ''
+            env['REQUESTS_CA_BUNDLE'] = ''
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120, env=env)
             
             if result.returncode != 0:
                 raise Exception(f"yt-dlp failed: {result.stderr}")
