@@ -136,6 +136,11 @@ def get_transcript_yt_dlp(video_id: str) -> tuple[str, str]:
                 "--skip-download",
                 "--no-warnings",
                 "--extractor-args", "youtube:skip=dash",
+                "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "--add-header", "Accept-Language:en-US,en;q=0.9",
+                "--add-header", "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "--sleep-requests", "1",
+                "--sleep-subtitles", "1",
                 "--output", output_template,
                 video_url
             ]
@@ -145,8 +150,7 @@ def get_transcript_yt_dlp(video_id: str) -> tuple[str, str]:
                 cmd.extend(["--cookies", cookies_path])
                 logger.info("Using cookies for yt-dlp authentication")
             else:
-                # Add user agent to appear more like a real browser
-                cmd.extend(["--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"])
+                logger.warning("No cookies available - may encounter bot detection")
             
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
             
