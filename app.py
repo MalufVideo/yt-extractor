@@ -82,21 +82,11 @@ def get_transcript_youtube_api(video_id: str) -> tuple[str, str]:
         from youtube_transcript_api import YouTubeTranscriptApi
         
         # Load cookies if available
-        cookies = None
         cookies_path = "/app/cookies.txt"
-        if os.path.exists(cookies_path):
-            # Parse cookies.txt into dict format for youtube_transcript_api
-            cookies = {}
-            with open(cookies_path, 'r') as f:
-                for line in f:
-                    if line.startswith('#') or not line.strip():
-                        continue
-                    parts = line.strip().split('\t')
-                    if len(parts) >= 7:
-                        domain, _, path, secure, expires, name, value = parts[:7]
-                        if 'youtube.com' in domain:
-                            cookies[name] = value
-            logger.info(f"Loaded {len(cookies)} cookies for YouTube Transcript API")
+        cookies = cookies_path if os.path.exists(cookies_path) else None
+        
+        if cookies:
+            logger.info("Using cookies file for YouTube Transcript API")
         
         # Try to get transcript directly with cookies
         transcript_list = YouTubeTranscriptApi.get_transcript(video_id, cookies=cookies)
@@ -168,6 +158,7 @@ def get_transcript_yt_dlp(video_id: str) -> tuple[str, str]:
                 "--add-header", "Upgrade-Insecure-Requests:1",
                 "--sleep-requests", "2",
                 "--sleep-subtitles", "1",
+                "--min-sleep-interval", "1",
                 "--max-sleep-interval", "5",
                 "--output", output_template,
                 video_url
