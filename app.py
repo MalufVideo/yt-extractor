@@ -115,24 +115,40 @@ def get_transcript_youtube_api(video_id: str) -> tuple[str, str]:
 
 
 def get_transcript_yt_dlp(video_id: str) -> tuple[str, str]:
-    """Method 2: Try yt-dlp to extract subtitles."""
+    """Method 2: Try yt-dlp to extract subtitles with cookies."""
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Try to download subtitles using yt-dlp
+            # Try to download subtitles using yt-dlp with cookies
             video_url = f"https://www.youtube.com/watch?v={video_id}"
             output_template = os.path.join(temp_dir, "%(title)s.%(ext)s")
+            
+            # Check if cookies file exists
+            cookies_path = "/app/cookies.txt"
+            if not os.path.exists(cookies_path):
+                logger.warning("Cookies file not found, proceeding without cookies")
+                cookies_path = None
             
             cmd = [
                 "yt-dlp",
                 "--write-auto-subs",
-                "--write-subs",
-                "--sub-langs", "en",
+                "--write-subs", 
+                "--sub-langs", "en,en-US,en-GB",
                 "--skip-download",
+                "--no-warnings",
+                "--extractor-args", "youtube:skip=dash",
                 "--output", output_template,
                 video_url
             ]
             
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            # Add cookies if available
+            if cookies_path:
+                cmd.extend(["--cookies", cookies_path])
+                logger.info("Using cookies for yt-dlp authentication")
+            else:
+                # Add user agent to appear more like a real browser
+                cmd.extend(["--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"])
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
             
             if result.returncode != 0:
                 raise Exception(f"yt-dlp failed: {result.stderr}")
