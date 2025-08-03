@@ -77,12 +77,29 @@ def extract_video_id(url_or_id: str) -> str:
 
 
 def get_transcript_youtube_api(video_id: str) -> tuple[str, str]:
-    """Method 1: Try youtube_transcript_api."""
+    """Method 1: Try youtube_transcript_api with cookies."""
     try:
         from youtube_transcript_api import YouTubeTranscriptApi
         
-        # Try to get transcript directly
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+        # Load cookies if available
+        cookies = None
+        cookies_path = "/app/cookies.txt"
+        if os.path.exists(cookies_path):
+            # Parse cookies.txt into dict format for youtube_transcript_api
+            cookies = {}
+            with open(cookies_path, 'r') as f:
+                for line in f:
+                    if line.startswith('#') or not line.strip():
+                        continue
+                    parts = line.strip().split('\t')
+                    if len(parts) >= 7:
+                        domain, _, path, secure, expires, name, value = parts[:7]
+                        if 'youtube.com' in domain:
+                            cookies[name] = value
+            logger.info(f"Loaded {len(cookies)} cookies for YouTube Transcript API")
+        
+        # Try to get transcript directly with cookies
+        transcript_list = YouTubeTranscriptApi.get_transcript(video_id, cookies=cookies)
         
         # Extract text from transcript data
         text_parts = []
@@ -94,7 +111,7 @@ def get_transcript_youtube_api(video_id: str) -> tuple[str, str]:
             return ' '.join(text_parts), "youtube_transcript_api"
         
         # If direct method fails, try list transcripts
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id, cookies=cookies)
         transcript = transcript_list.find_generated_transcript(['en'])
         transcript_data = transcript.fetch()
         
@@ -132,15 +149,26 @@ def get_transcript_yt_dlp(video_id: str) -> tuple[str, str]:
                 "yt-dlp",
                 "--write-auto-subs",
                 "--write-subs", 
-                "--sub-langs", "en,en-US,en-GB",
+                "--sub-langs", "en,en-US,en-GB,en-orig",
+                "--sub-format", "vtt/srt/best",
                 "--skip-download",
                 "--no-warnings",
-                "--extractor-args", "youtube:skip=dash",
+                "--no-check-certificates",
+                "--extractor-args", "youtube:skip=dash,hls",
                 "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "--add-header", "Accept-Language:en-US,en;q=0.9",
-                "--add-header", "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                "--sleep-requests", "1",
+                "--add-header", "Accept-Language:en-US,en;q=0.9,*;q=0.8",
+                "--add-header", "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                "--add-header", "Accept-Encoding:gzip, deflate, br",
+                "--add-header", "Cache-Control:no-cache",
+                "--add-header", "Pragma:no-cache",
+                "--add-header", "Sec-Fetch-Dest:document",
+                "--add-header", "Sec-Fetch-Mode:navigate",
+                "--add-header", "Sec-Fetch-Site:none",
+                "--add-header", "Sec-Fetch-User:?1",
+                "--add-header", "Upgrade-Insecure-Requests:1",
+                "--sleep-requests", "2",
                 "--sleep-subtitles", "1",
+                "--max-sleep-interval", "5",
                 "--output", output_template,
                 video_url
             ]
