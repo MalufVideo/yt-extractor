@@ -139,28 +139,11 @@ def get_transcript_yt_dlp(video_id: str) -> tuple[str, str]:
                 "yt-dlp",
                 "--write-auto-subs",
                 "--write-subs", 
-                "--sub-langs", "en,en-US,en-GB,en-orig",
-                "--sub-format", "vtt/srt/best",
+                "--sub-langs", "en",
                 "--skip-download",
                 "--no-warnings",
-                "--no-check-certificates",
-                "--ignore-errors",
-                "--extractor-args", "youtube:skip=dash,hls",
-                "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "--add-header", "Accept-Language:en-US,en;q=0.9,*;q=0.8",
-                "--add-header", "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-                "--add-header", "Accept-Encoding:gzip, deflate, br",
-                "--add-header", "Cache-Control:no-cache",
-                "--add-header", "Pragma:no-cache",
-                "--add-header", "Sec-Fetch-Dest:document",
-                "--add-header", "Sec-Fetch-Mode:navigate",
-                "--add-header", "Sec-Fetch-Site:none",
-                "--add-header", "Sec-Fetch-User:?1",
-                "--add-header", "Upgrade-Insecure-Requests:1",
-                "--sleep-requests", "2",
-                "--sleep-subtitles", "1",
-                "--min-sleep-interval", "1",
-                "--max-sleep-interval", "5",
+                "--no-check-certificate",
+                "--ignore-config",
                 "--output", output_template,
                 video_url
             ]
@@ -175,10 +158,9 @@ def get_transcript_yt_dlp(video_id: str) -> tuple[str, str]:
             # Set environment variables to fix SSL issues
             env = os.environ.copy()
             env['PYTHONHTTPSVERIFY'] = '0'
-            env['CURL_CA_BUNDLE'] = ''
-            env['REQUESTS_CA_BUNDLE'] = ''
+            env['SSL_VERIFY'] = 'false'
             
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120, env=env)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, env=env)
             
             if result.returncode != 0:
                 raise Exception(f"yt-dlp failed: {result.stderr}")
